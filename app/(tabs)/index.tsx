@@ -1,98 +1,132 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { LinearGradient } from "expo-linear-gradient";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+export default function Home() {
+  const pulse = useRef(new Animated.Value(0)).current;
+  const [listening, setListening] = useState(false);
 
-export default function HomeScreen() {
+  useEffect(() => {
+    Animated.loop(
+      Animated.timing(pulse, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  const scale = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 2.5],
+  });
+
+  const opacity = pulse.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.7, 0],
+  });
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <LinearGradient
+      colors={["#0a0f1f", "#05070f"]}
+      style={styles.container}
+    >
+      <Text style={styles.title}>🚨 Echo-Locator</Text>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      {/* Radar Pulse */}
+      <View style={styles.radarContainer}>
+        <Animated.View
+          style={[
+            styles.pulse,
+            {
+              transform: [{ scale }],
+              opacity,
+            },
+          ]}
+        />
+        <View style={styles.centerDot} />
+      </View>
+
+      {/* Status Card */}
+      <View style={styles.card}>
+        <Text style={styles.status}>
+          {listening ? "🎧 Listening for distress..." : "🛑 Not Listening"}
+        </Text>
+        <Text style={styles.sub}>
+          Mesh Network: Active
+        </Text>
+      </View>
+
+      {/* SOS Button */}
+      <Pressable
+        onPress={() => setListening(!listening)}
+        style={({ pressed }) => [
+          styles.button,
+          { transform: [{ scale: pressed ? 0.92 : 1 }] },
+        ]}
+      >
+        <Text style={styles.buttonText}>
+          {listening ? "STOP LISTENING" : "START LISTENING"}
+        </Text>
+      </Pressable>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  title: {
+    color: "#00ffd5",
+    fontSize: 32,
+    fontWeight: "bold",
+    marginBottom: 40,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  radarContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 40,
+  },
+  pulse: {
+    position: "absolute",
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#00ffd5",
+  },
+  centerDot: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#00ffd5",
+  },
+  card: {
+    backgroundColor: "#111827",
+    padding: 20,
+    borderRadius: 16,
+    marginBottom: 30,
+    width: "80%",
+    alignItems: "center",
+  },
+  status: {
+    color: "#fff",
+    fontSize: 18,
+    marginBottom: 6,
+  },
+  sub: {
+    color: "#9ca3af",
+  },
+  button: {
+    backgroundColor: "#00ffd5",
+    paddingVertical: 16,
+    paddingHorizontal: 40,
+    borderRadius: 30,
+  },
+  buttonText: {
+    fontWeight: "bold",
+    color: "#000",
   },
 });
