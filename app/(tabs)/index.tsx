@@ -31,9 +31,9 @@ export default function Home() {
       colors={["#0a0f1f", "#05070f"]}
       style={styles.container}
     >
-      <Text style={styles.title}>🚨 Echo-Locator</Text>
+      <Text style={styles.title}>echo-Locator</Text>
 
-      {/* Radar Pulse */}
+      
       <View style={styles.radarContainer}>
         <Animated.View
           style={[
@@ -47,7 +47,7 @@ export default function Home() {
         <View style={styles.centerDot} />
       </View>
 
-      {/* Status Card */}
+      
       <View style={styles.card}>
         <Text style={styles.status}>
           {listening ? "🎧 Listening for distress..." : "🛑 Not Listening"}
@@ -57,7 +57,7 @@ export default function Home() {
         </Text>
       </View>
 
-      {/* SOS Button */}
+      
       <Pressable
         onPress={() => setListening(!listening)}
         style={({ pressed }) => [
