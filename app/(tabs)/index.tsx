@@ -31,7 +31,7 @@ export default function Home() {
       colors={["#0a0f1f", "#05070f"]}
       style={styles.container}
     >
-      <Text style={styles.title}>🚨 Echo-Locator</Text>
+      <Text style={styles.title}> Echo-Locator</Text>
 
       {/* Radar Pulse */}
       <View style={styles.radarContainer}>
@@ -50,7 +50,7 @@ export default function Home() {
       {/* Status Card */}
       <View style={styles.card}>
         <Text style={styles.status}>
-          {listening ? "🎧 Listening for distress..." : "🛑 Not Listening"}
+          {listening ? "🎧 Listening for distress..." : " Not Listening"}
         </Text>
         <Text style={styles.sub}>
           Mesh Network: Active
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    color: "#00ffd5",
+    color: "#1da3cc",
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 40,
@@ -95,13 +95,13 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#00ffd5",
+    backgroundColor: "#ff0000",
   },
   centerDot: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#00ffd5",
+    backgroundColor: "#ff0000",
   },
   card: {
     backgroundColor: "#111827",
