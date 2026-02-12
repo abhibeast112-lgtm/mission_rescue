@@ -2,15 +2,11 @@ import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router"; 
-import { Audio } from "expo-av";
-
 
 export default function Home() {
   const router = useRouter(); 
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
-
 
   useEffect(() => {
     Animated.loop(
@@ -31,31 +27,6 @@ export default function Home() {
     inputRange: [0, 1],
     outputRange: [0.7, 0],
   });
-  const startListening = async (): Promise<void> => {
-  const permission = await Audio.requestPermissionsAsync();
-  if (!permission.granted) return;
-
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true,
-  });
-
-  const { recording } = await Audio.Recording.createAsync(
-    Audio.RecordingOptionsPresets.LOW_QUALITY
-  );
-
-  setRecording(recording);
-  setListening(true);
-};
-
-const stopListening = async (): Promise<void> => {
-  if (!recording) return;
-
-  await recording.stopAndUnloadAsync();
-  setRecording(null);
-  setListening(false);
-};
-
 
   return (
     <LinearGradient
@@ -88,10 +59,7 @@ const stopListening = async (): Promise<void> => {
       </View>
 
       <Pressable
-        onPress={() => {
-  listening ? stopListening() : startListening();
-}}
-
+        onPress={() => setListening(!listening)}
         style={({ pressed }) => [
           styles.button,
           { transform: [{ scale: pressed ? 0.95 : 1 }] },
@@ -149,7 +117,7 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: "#00ffd5",
-
+    // Adding a glow effect
     shadowColor: "#00ffd5",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
