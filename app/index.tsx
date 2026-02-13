@@ -4,8 +4,33 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import { stateManager } from "../core/StateManager";
 import { Tier } from "../core/tiers";
+import { broadcastAlert } from "../mesh/transport";
+import { saveAlert } from "../storage/alertsStore";
+import { getDeviceId } from "../core/deviceId";
+import { AlertV1 } from "../core/types";
+
 
 export default function Home() {
+  const toggleListening = () => {
+    const triggerConfirmed = async () => {
+  const senderId = await getDeviceId();
+
+  const alert: AlertV1 = {
+    v: 1,
+    id: "a_" + Date.now().toString(36),
+    createdAt: Date.now(),
+    senderId,
+    hop: 0,
+    ttl: 6,
+    confidence: 0.85,
+    tier: "CONFIRMED",
+  };
+
+  await saveAlert(alert);
+  await broadcastAlert(alert);
+};
+
+
   const router = useRouter();
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
@@ -75,6 +100,10 @@ export default function Home() {
           {listening ? "STOP LISTENING" : "START LISTENING"}
         </Text>
       </Pressable>
+      <Pressable onPress={triggerConfirmed} style={styles.button}>
+  <Text style={styles.buttonText}>🚨 TEST CONFIRMED ALERT</Text>
+</Pressable>
+
 
       <View style={styles.navLinks}>
         <Pressable onPress={() => router.push("/nodes")}>
@@ -165,3 +194,4 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
 });
+}
