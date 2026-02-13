@@ -1,33 +1,76 @@
-// mesh/transport.ts
 import { AlertV1 } from "../core/types";
-import { onAlert as onWsAlert, connectWS, sendAlertWS } from "./wsTransport";
 
-type Listener = (a: AlertV1) => void;
-const localListeners = new Set<Listener>();
+type Listener = (alert: AlertV1) => void;
 
-// subscribe used by your app to receive alerts
-export function subscribeAlerts(fn: Listener) {
-  localListeners.add(fn);
-  return () => localListeners.delete(fn);
+const listeners = new Set<Listener>();
+
+let ws: WebSocket | null = null;
+let isOpen = false;
+
+export function subscribeAlerts(cb: Listener) {
+  listeners.add(cb);
+  return () => {
+    listeners.delete(cb); // ✅ return void (not boolean)
+  };
 }
 
-function emitLocal(a: AlertV1) {
-  for (const fn of localListeners) fn(a);
+function emit(alert: AlertV1) {
+  listeners.forEach((cb) => cb(alert));
 }
 
-// connect from UI / app start
-export async function meshConnect(wsUrl: string, room = "default") {
-  await connectWS(wsUrl, room);
+// ✅ Call this once on app start (in _layout.tsx)
+export function meshConnect(url: string) {
+  if (
+    ws &&
+    (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)
+  ) {
+    return;
+  }
 
-  // bridge WS incoming -> app listeners
-  onWsAlert((a) => emitLocal(a));
+  console.log("🌐 connecting to mesh:", url);
+  ws = new WebSocket(url);
+
+  ws.onopen = () => {
+    isOpen = true;
+    console.log("✅ mesh connected");
+  };
+
+  ws.onclose = () => {
+    isOpen = false;
+    console.log("❌ mesh disconnected");
+    ws = null;
+  };
+
+  ws.onerror = (e) => {
+    console.log("❌ mesh error", e);
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const data = typeof event.data === "string" ? event.data : "";
+      console.log("📥 ws message received:", data);
+
+      const msg = JSON.parse(data);
+
+      // We send raw AlertV1 JSON, so msg itself is the alert
+      if (msg && msg.v === 1 && msg.id) {
+        emit(msg as AlertV1);
+      }
+    } catch (e) {
+      console.log("⚠️ bad ws message", e);
+    }
+  };
 }
 
-// called by app to broadcast
+// ✅ This is the “rescue signal send”
 export async function broadcastAlert(alert: AlertV1) {
-  // also emit to self immediately so UI updates
-  emitLocal(alert);
+  console.log("📡 sending over ws:", isOpen, ws?.readyState);
 
-  // send to network
-  await sendAlertWS(alert);
+  if (!ws || !isOpen) {
+    console.log("⚠️ mesh not connected, cannot send");
+    return;
+  }
+
+  ws.send(JSON.stringify(alert));
+  console.log("📡 sent alert:", alert.id);
 }

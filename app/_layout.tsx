@@ -1,29 +1,22 @@
 import { Stack } from "expo-router";
 import { useEffect } from "react";
-import { subscribeAlerts, meshConnect } from "../mesh/transport";
-import { saveAlert } from "../storage/alertsStore";
 import { useEchoLocator } from "../hooks/useEchoLocator";
-
+import { meshConnect, subscribeAlerts } from "../mesh/transport";
+import { saveAlert } from "../storage/alertsStore";
 
 export default function RootLayout() {
   useEchoLocator();
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
+    // ✅ change IP if needed
+    meshConnect("ws://172.18.231.10:8787");
 
-    const run = async () => {
-      await meshConnect("ws://172.18.231.10:8787", "demo");
+    const unsub = subscribeAlerts(async (a) => {
+      console.log("📥 RECEIVED ALERT:", a.id);
+      await saveAlert(a);
+    });
 
-      unsub = subscribeAlerts(async (a) => {
-        await saveAlert(a);
-      });
-    };
-
-    run();
-
-    return () => {
-      if (unsub) unsub();
-    };
+    return () => unsub();
   }, []);
 
   return <Stack />;
