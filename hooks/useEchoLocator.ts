@@ -10,42 +10,57 @@ import { Tier } from "../core/tiers";
 export function useEchoLocator() {
   const suspicionHandled = useRef(false);
   const handlingSuspicion = useRef(false);
+  const idleRunning = useRef(false);
 
   useEffect(() => {
     console.log("🧠 useEchoLocator mounted");
-    startIdleAudioMonitor();
+
     const unsubscribe = stateManager.subscribe(async (tier) => {
-  if (handlingSuspicion.current) return;
 
-  if (tier === Tier.SUSPICION && !suspicionHandled.current) {
-    handlingSuspicion.current = true;
-    suspicionHandled.current = true;
+      // ⛔ OFF = HARD STOP
+      if (tier === Tier.OFF) {
+        console.log("⛔ Listening OFF");
+        idleRunning.current = false;
+        await stopIdleAudioMonitor();
+        return;
+      }
 
-    console.log("🟡 Entered SUSPICION handler");
+      // 🔒 Block re-entry during suspicion handling
+      if (handlingSuspicion.current) return;
 
-    await stopIdleAudioMonitor();
-    const rec = await recordSuspicionWindow(2500);
+      // 🟡 SUSPICION FLOW
+      if (tier === Tier.SUSPICION && !suspicionHandled.current) {
+        handlingSuspicion.current = true;
+        suspicionHandled.current = true;
 
-    stateManager.setTier(Tier.IDLE);
+        console.log("🟡 Entered SUSPICION handler");
 
-    if (rec) {
-      console.log("🎧 Suspicion audio captured");
-    } else {
-      console.log("❌ Recorder returned null");
-    }
+        idleRunning.current = false;
+        await stopIdleAudioMonitor();
 
-    await startIdleAudioMonitor();
-    handlingSuspicion.current = false;
-  }
+        const rec = await recordSuspicionWindow(2500);
 
-  if (tier === Tier.IDLE) {
-    suspicionHandled.current = false;
-  }
-});
+        stateManager.setTier(Tier.IDLE);
 
+        if (rec) {
+          console.log("🎧 Suspicion audio captured");
+        } else {
+          console.log("❌ Recorder returned null");
+        }
+
+        handlingSuspicion.current = false;
+      }
+
+      // 🔁 IDLE = resume passive listening (once)
+      if (tier === Tier.IDLE && !idleRunning.current) {
+        suspicionHandled.current = false;
+        idleRunning.current = true;
+        await startIdleAudioMonitor();
+      }
+    });
 
     return () => {
-        unsubscribe();
+      unsubscribe();
       stopIdleAudioMonitor();
     };
   }, []);

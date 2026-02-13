@@ -72,7 +72,10 @@ ownsAudioLock = true;
   console.log("⚠️ Suspicion detected");
 
   await stopIdleAudioMonitor(); // 🔥 CRITICAL
+  if (stateManager.canTriggerSuspicion()) {
   stateManager.setTier(Tier.SUSPICION);
+}
+
 }
 
   }, IDLE_SAMPLE_INTERVAL);
