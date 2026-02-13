@@ -3,6 +3,12 @@ import { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router"; 
 import { Audio } from "expo-av";
+import { stateManager } from "../core/StateManager";
+import { Tier } from "../core/tiers";
+
+console.log(stateManager.getTier());
+stateManager.setTier(Tier.SUSPICION);
+
 
 
 export default function Home() {
