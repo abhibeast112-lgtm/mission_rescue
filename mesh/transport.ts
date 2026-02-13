@@ -1,17 +1,33 @@
+// mesh/transport.ts
 import { AlertV1 } from "../core/types";
+import { onAlert as onWsAlert, connectWS, sendAlertWS } from "./wsTransport";
 
-type Listener = (alert: AlertV1) => void;
+type Listener = (a: AlertV1) => void;
+const localListeners = new Set<Listener>();
 
-let listeners = new Set<Listener>();
-
-export function onAlertReceived(cb: Listener) {
-  listeners.add(cb);
-  return () => listeners.delete(cb);
+// subscribe used by your app to receive alerts
+export function subscribeAlerts(fn: Listener) {
+  localListeners.add(fn);
+  return () => localListeners.delete(fn);
 }
 
-// STUB: later replace this with BLE/Wi-Fi Direct send
+function emitLocal(a: AlertV1) {
+  for (const fn of localListeners) fn(a);
+}
+
+// connect from UI / app start
+export async function meshConnect(wsUrl: string, room = "default") {
+  await connectWS(wsUrl, room);
+
+  // bridge WS incoming -> app listeners
+  onWsAlert((a) => emitLocal(a));
+}
+
+// called by app to broadcast
 export async function broadcastAlert(alert: AlertV1) {
-  console.log("📡 [mesh stub] broadcasting alert:", alert.id);
-  // For now, simulate immediate local receive:
-  listeners.forEach((cb) => cb(alert));
+  // also emit to self immediately so UI updates
+  emitLocal(alert);
+
+  // send to network
+  await sendAlertWS(alert);
 }

@@ -9,34 +9,20 @@ import { saveAlert } from "../storage/alertsStore";
 import { getDeviceId } from "../core/deviceId";
 import { AlertV1 } from "../core/types";
 
-
 export default function Home() {
-  const toggleListening = () => {
-    const triggerConfirmed = async () => {
-  const senderId = await getDeviceId();
-
-  const alert: AlertV1 = {
-    v: 1,
-    id: "a_" + Date.now().toString(36),
-    createdAt: Date.now(),
-    senderId,
-    hop: 0,
-    ttl: 6,
-    confidence: 0.85,
-    tier: "CONFIRMED",
-  };
-
-  await saveAlert(alert);
-  await broadcastAlert(alert);
-};
-
-
   const router = useRouter();
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
 
+  // ✅ keep UI synced with tier
+  useEffect(() => {
+    const unsub = stateManager.subscribe((t) => {
+      setListening(t !== Tier.OFF);
+    });
+    return () => unsub();
+  }, []);
 
-  // Radar animation
+  // ✅ Radar animation
   useEffect(() => {
     Animated.loop(
       Animated.timing(pulse, {
@@ -57,27 +43,46 @@ export default function Home() {
     outputRange: [0.7, 0],
   });
 
-  const toggleListening = () => {
-    setListening(prev => !prev);
+  // ✅ THIS MUST EXIST (the error was saying it doesn't)
+  const startListening = () => stateManager.setTier(Tier.IDLE);
+  const stopListening = () => stateManager.setTier(Tier.OFF);
 
-    if (!listening) {
-      stateManager.setTier(Tier.IDLE);
-    } else {
-      stateManager.setTier(Tier.OFF);
-    }
-  };
+
+  const triggerConfirmed = async () => {
+  console.log("🧪 TEST BUTTON PRESSED");
+
+  try {
+    const senderId = await getDeviceId();
+
+    const alert: AlertV1 = {
+      v: 1 as const,
+      id: "a_" + Date.now().toString(36),
+      createdAt: Date.now(),
+      senderId,
+      hop: 0,
+      ttl: 6,
+      confidence: 0.95,
+      tier: "CONFIRMED" as const,
+    };
+
+    console.log("🧪 saving alert:", alert.id);
+    await saveAlert(alert);
+
+    console.log("🧪 broadcasting alert:", alert.id);
+    await broadcastAlert(alert);
+
+    console.log("✅ TEST ALERT SENT:", alert.id);
+  } catch (e) {
+    console.log("❌ TEST ALERT FAILED:", e);
+  }
+};
 
   return (
     <LinearGradient colors={["#0a0f1f", "#05070f"]} style={styles.container}>
       <Text style={styles.title}>echo-Locator</Text>
 
       <View style={styles.radarContainer}>
-        <Animated.View
-          style={[
-            styles.pulse,
-            { transform: [{ scale }], opacity },
-          ]}
-        />
+        <Animated.View style={[styles.pulse, { transform: [{ scale }], opacity }]} />
         <View style={styles.centerDot} />
       </View>
 
@@ -88,22 +93,34 @@ export default function Home() {
         <Text style={styles.sub}>Mesh Network: Active</Text>
       </View>
 
-      <Pressable
-        onPress={toggleListening}
-        style={({ pressed }) => [
-          styles.button,
-          { transform: [{ scale: pressed ? 0.95 : 1 }] },
-          !listening && styles.buttonInactive,
-        ]}
-      >
-        <Text style={styles.buttonText}>
-          {listening ? "STOP LISTENING" : "START LISTENING"}
-        </Text>
-      </Pressable>
-      <Pressable onPress={triggerConfirmed} style={styles.button}>
-  <Text style={styles.buttonText}>🚨 TEST CONFIRMED ALERT</Text>
-</Pressable>
+      {!listening ? (
+  <Pressable
+    onPress={startListening}
+    style={({ pressed }) => [
+      styles.button,
+      { transform: [{ scale: pressed ? 0.95 : 1 }] },
+      styles.buttonInactive,
+    ]}
+  >
+    <Text style={styles.buttonText}>START LISTENING</Text>
+  </Pressable>
+) : (
+  <Pressable
+    onLongPress={stopListening}
+    delayLongPress={700}
+    style={({ pressed }) => [
+      styles.button,
+      { transform: [{ scale: pressed ? 0.98 : 1 }] },
+    ]}
+  >
+    <Text style={styles.buttonText}>HOLD TO STOP</Text>
+  </Pressable>
+)}
 
+
+      <Pressable onPress={triggerConfirmed} style={styles.button}>
+        <Text style={styles.buttonText}>🚨 TEST CONFIRMED ALERT</Text>
+      </Pressable>
 
       <View style={styles.navLinks}>
         <Pressable onPress={() => router.push("/nodes")}>
@@ -116,12 +133,9 @@ export default function Home() {
     </LinearGradient>
   );
 }
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  container: { flex: 1, alignItems: "center", justifyContent: "center" },
   title: {
     color: "#00ffd5",
     fontSize: 32,
@@ -159,16 +173,8 @@ const styles = StyleSheet.create({
     width: "85%",
     alignItems: "center",
   },
-  status: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-  sub: {
-    color: "#9ca3af",
-    fontSize: 14,
-  },
+  status: { color: "#fff", fontSize: 18, fontWeight: "600", marginBottom: 6 },
+  sub: { color: "#9ca3af", fontSize: 14 },
   button: {
     backgroundColor: "#00ffd5",
     paddingVertical: 16,
@@ -176,22 +182,8 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginBottom: 20,
   },
-  buttonInactive: {
-    backgroundColor: "#064e4b",
-  },
-  buttonText: {
-    fontWeight: "bold",
-    color: "#000",
-    fontSize: 16,
-  },
-  navLinks: {
-    flexDirection: "row",
-    gap: 20,
-    marginTop: 10,
-  },
-  linkText: {
-    color: "#9ca3af",
-    textDecorationLine: "underline",
-  },
+  buttonInactive: { backgroundColor: "#064e4b" },
+  buttonText: { fontWeight: "bold", color: "#000", fontSize: 16 },
+  navLinks: { flexDirection: "row", gap: 20, marginTop: 10 },
+  linkText: { color: "#9ca3af", textDecorationLine: "underline" },
 });
-}
