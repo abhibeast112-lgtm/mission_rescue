@@ -1,23 +1,17 @@
 import { View, Text, StyleSheet, Pressable, Animated } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router"; 
-import { Audio } from "expo-av";
+import { useRouter } from "expo-router";
 import { stateManager } from "../core/StateManager";
 import { Tier } from "../core/tiers";
 
-console.log(stateManager.getTier());
-stateManager.setTier(Tier.SUSPICION);
-
-
-
 export default function Home() {
-  const router = useRouter(); 
+  const router = useRouter();
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
-  const [recording, setRecording] = useState<Audio.Recording | null>(null);
 
 
+  // Radar animation
   useEffect(() => {
     Animated.loop(
       Animated.timing(pulse, {
@@ -37,48 +31,26 @@ export default function Home() {
     inputRange: [0, 1],
     outputRange: [0.7, 0],
   });
-  const startListening = async (): Promise<void> => {
-  const permission = await Audio.requestPermissionsAsync();
-  if (!permission.granted) return;
 
-  await Audio.setAudioModeAsync({
-    allowsRecordingIOS: true,
-    playsInSilentModeIOS: true,
-  });
+  const toggleListening = () => {
+    setListening(prev => !prev);
 
-  const { recording } = await Audio.Recording.createAsync(
-    Audio.RecordingOptionsPresets.LOW_QUALITY
-  );
-
-  setRecording(recording);
-  setListening(true);
-};
-
-const stopListening = async (): Promise<void> => {
-  if (!recording) return;
-
-  await recording.stopAndUnloadAsync();
-  setRecording(null);
-  setListening(false);
-};
-
+    if (!listening) {
+      stateManager.setTier(Tier.IDLE);
+    } else {
+      stateManager.setTier(Tier.OFF);
+    }
+  };
 
   return (
-    <LinearGradient
-      colors={["#0a0f1f", "#05070f"]}
-      style={styles.container}
-    >
+    <LinearGradient colors={["#0a0f1f", "#05070f"]} style={styles.container}>
       <Text style={styles.title}>echo-Locator</Text>
 
-      {/* Radar Section */}
       <View style={styles.radarContainer}>
         <Animated.View
           style={[
             styles.pulse,
-            {
-              transform: [{ scale }],
-              opacity,
-            },
+            { transform: [{ scale }], opacity },
           ]}
         />
         <View style={styles.centerDot} />
@@ -88,20 +60,15 @@ const stopListening = async (): Promise<void> => {
         <Text style={styles.status}>
           {listening ? "🎧 Listening for distress..." : "🛑 Not Listening"}
         </Text>
-        <Text style={styles.sub}>
-          Mesh Network: Active
-        </Text>
+        <Text style={styles.sub}>Mesh Network: Active</Text>
       </View>
 
       <Pressable
-        onPress={() => {
-  listening ? stopListening() : startListening();
-}}
-
+        onPress={toggleListening}
         style={({ pressed }) => [
           styles.button,
           { transform: [{ scale: pressed ? 0.95 : 1 }] },
-          !listening && styles.buttonInactive // Optional style logic
+          !listening && styles.buttonInactive,
         ]}
       >
         <Text style={styles.buttonText}>
@@ -109,7 +76,6 @@ const stopListening = async (): Promise<void> => {
         </Text>
       </Pressable>
 
-      {/* Navigation Example - Moving them inside buttons or a specific logic block */}
       <View style={styles.navLinks}>
         <Pressable onPress={() => router.push("/nodes")}>
           <Text style={styles.linkText}>View Nodes</Text>
@@ -121,7 +87,6 @@ const stopListening = async (): Promise<void> => {
     </LinearGradient>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -133,8 +98,8 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "bold",
     marginBottom: 40,
-    textTransform: 'uppercase',
-    letterSpacing: 2
+    textTransform: "uppercase",
+    letterSpacing: 2,
   },
   radarContainer: {
     alignItems: "center",
@@ -155,11 +120,6 @@ const styles = StyleSheet.create({
     height: 30,
     borderRadius: 15,
     backgroundColor: "#00ffd5",
-
-    shadowColor: "#00ffd5",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 10,
     elevation: 10,
   },
   card: {
@@ -169,28 +129,26 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     width: "85%",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#1f2937"
   },
   status: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     marginBottom: 6,
   },
   sub: {
     color: "#9ca3af",
-    fontSize: 14
+    fontSize: 14,
   },
   button: {
     backgroundColor: "#00ffd5",
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 30,
-    marginBottom: 20
+    marginBottom: 20,
   },
   buttonInactive: {
-    backgroundColor: "#064e4b", 
+    backgroundColor: "#064e4b",
   },
   buttonText: {
     fontWeight: "bold",
@@ -198,12 +156,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   navLinks: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 20,
-    marginTop: 10
+    marginTop: 10,
   },
   linkText: {
     color: "#9ca3af",
-    textDecorationLine: 'underline'
-  }
+    textDecorationLine: "underline",
+  },
 });
