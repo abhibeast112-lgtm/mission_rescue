@@ -1,5 +1,6 @@
 export enum Tier {
+  OFF = "OFF",
   IDLE = "IDLE",
   SUSPICION = "SUSPICION",
-  DISTRESS = "DISTRESS",
+  ALERT = "ALERT",
 }
