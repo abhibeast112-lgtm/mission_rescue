@@ -55,16 +55,21 @@ export default function Home() {
   try {
     const senderId = await getDeviceId();
 
-    const alert: AlertV1 = {
-      v: 1 as const,
-      id: "a_" + Date.now().toString(36),
-      createdAt: Date.now(),
-      senderId,
-      hop: 0,
-      ttl: 6,
-      confidence: 0.95,
-      tier: "CONFIRMED" as const,
-    };
+    const { getApproxLocation } = await import("../core/location");
+const approxLocation = await getApproxLocation();
+
+const alert: AlertV1 = {
+  v: 1 as const,
+  id: "a_" + Date.now().toString(36),
+  createdAt: Date.now(),
+  senderId,
+  hop: 0,
+  ttl: 6,
+  confidence: 0.85,
+  tier: "CONFIRMED" as const,
+  approxLocation,
+};
+
 
     console.log("🧪 saving alert:", alert.id);
     await saveAlert(alert);
