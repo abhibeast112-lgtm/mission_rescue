@@ -1,41 +1,32 @@
 import { Tier } from "./tiers";
 
+type TierListener = (tier: Tier) => void;
+
 class StateManager {
   private currentTier: Tier = Tier.IDLE;
-  private transitioning = false;
+  private listeners = new Set<TierListener>();
 
   getTier(): Tier {
     return this.currentTier;
   }
 
-  setTier(next: Tier) {
-    // ⏳ block rapid double transitions
-    if (this.transitioning) {
-      console.log("⏳ Tier transition blocked:", this.currentTier, "→", next);
-      return;
+  setTier(tier: Tier) {
+    if (this.currentTier !== tier) {
+      console.log("🧠 Tier change:", this.currentTier, "→", tier);
+      this.currentTier = tier;
+
+      // 🔔 notify listeners
+      this.listeners.forEach((listener) => listener(tier));
     }
+  }
 
-    // 🔁 ignore no-op
-    if (this.currentTier === next) return;
+  subscribe(listener: TierListener) {
+    this.listeners.add(listener);
 
-    // 🚫 INVALID TRANSITIONS (critical)
-    if (
-      (this.currentTier === Tier.SUSPICION && next !== Tier.IDLE) ||
-      (this.currentTier === Tier.OFF && next === Tier.SUSPICION)
-    ) {
-      console.log("🚫 Invalid tier transition:", this.currentTier, "→", next);
-      return;
-    }
-
-    this.transitioning = true;
-    console.log("🧠 Tier change:", this.currentTier, "→", next);
-
-    this.currentTier = next;
-
-    // small debounce window to prevent flapping
-    setTimeout(() => {
-      this.transitioning = false;
-    }, 300);
+    // return unsubscribe function
+    return () => {
+      this.listeners.delete(listener);
+    };
   }
 }
 

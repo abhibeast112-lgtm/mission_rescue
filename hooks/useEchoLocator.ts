@@ -14,46 +14,38 @@ export function useEchoLocator() {
   useEffect(() => {
     console.log("🧠 useEchoLocator mounted");
     startIdleAudioMonitor();
+    const unsubscribe = stateManager.subscribe(async (tier) => {
+  if (handlingSuspicion.current) return;
 
-    const loop = setInterval(async () => {
-      // 🔒 HARD LOCK while recording suspicion
-      if (handlingSuspicion.current) return;
+  if (tier === Tier.SUSPICION && !suspicionHandled.current) {
+    handlingSuspicion.current = true;
+    suspicionHandled.current = true;
 
-      const tier = stateManager.getTier();
+    console.log("🟡 Entered SUSPICION handler");
 
-      if (tier === Tier.SUSPICION && !suspicionHandled.current) {
-        handlingSuspicion.current = true;
-        suspicionHandled.current = true;
+    await stopIdleAudioMonitor();
+    const rec = await recordSuspicionWindow(2500);
 
-        console.log("🟡 Entered SUSPICION handler");
+    stateManager.setTier(Tier.IDLE);
 
-        // 🛑 stop idle listener BEFORE recording
-        await stopIdleAudioMonitor();
+    if (rec) {
+      console.log("🎧 Suspicion audio captured");
+    } else {
+      console.log("❌ Recorder returned null");
+    }
 
-        const rec = await recordSuspicionWindow(2500);
+    await startIdleAudioMonitor();
+    handlingSuspicion.current = false;
+  }
 
-        // 🔁 return to idle state
-        stateManager.setTier(Tier.IDLE);
+  if (tier === Tier.IDLE) {
+    suspicionHandled.current = false;
+  }
+});
 
-        if (rec) {
-          console.log("🎧 Suspicion audio captured");
-        } else {
-          console.log("❌ Recorder returned null");
-        }
-
-        // ▶️ resume passive listening
-        await startIdleAudioMonitor();
-        handlingSuspicion.current = false;
-      }
-
-      // 🔁 allow next suspicion trigger
-      if (tier === Tier.IDLE) {
-        suspicionHandled.current = false;
-      }
-    }, 500);
 
     return () => {
-      clearInterval(loop);
+        unsubscribe();
       stopIdleAudioMonitor();
     };
   }, []);
