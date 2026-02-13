@@ -11,6 +11,7 @@ import { AlertV1 } from "../core/types";
 
 export default function Home() {
   const router = useRouter();
+  
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
 

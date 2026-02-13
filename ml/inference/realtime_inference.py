@@ -1,25 +1,23 @@
-import sounddevice as sd
 import numpy as np
-import joblib
-import librosa
-import os
-# Load model
-MODEL_PATH = os.path.join("models", "model.pkl")
-model = joblib.load(MODEL_PATH)
+from features.audio_features import extract_features
+from inference.model_loader import load_model
 
-def extract_features_from_audio(audio, sr):
-    mfcc = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=40)
-    return np.mean(mfcc.T, axis=0)
+# Load model once (important for performance)
+model = load_model()
 
-def record_audio(duration=3, sr=22050):
-    print("Recording...")
-    audio = sd.rec(int(duration * sr), samplerate=sr, channels=1)
-    sd.wait()
-    print("Done recording.")
-    return audio.flatten(), sr
+def infer(file_path: str) -> float:
+    """
+    Takes path to 2.5 sec audio file
+    Returns confidence score (0–1)
+    """
 
-if __name__ == "__main__":
-    audio, sr = record_audio()
-    features = extract_features_from_audio(audio, sr)
-    prediction = model.predict([features])
-    print("Prediction:", prediction[0])
+    # Extract MFCC features
+    features = extract_features(file_path)
+
+    # Reshape for sklearn (1 sample, N features)
+    features = np.array(features).reshape(1, -1)
+
+    # Get probability of class 1 (distress)
+    confidence = model.predict_proba(features)[0][1]
+
+    return float(confidence)

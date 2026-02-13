@@ -1,38 +1,44 @@
-from fastapi import FastAPI, UploadFile, File
-from fastapi.responses import FileResponse
+import sys
 import os
-import joblib
-import numpy as np
-import librosa
+
+# Ensure project root is in path (prevents import issues)
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from inference.realtime_inference import infer
+from config import CONFIDENCE_THRESHOLD
+from fastapi import FastAPI
 
 app = FastAPI()
+
 @app.get("/")
 def root():
-    return {"message": "ML backend running"}
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("favicon.ico")
+    return {"status": "ML server running"}
 
-# Safe absolute path
-BASE_DIR = os.path.dirname(__file__)
-MODEL_PATH = os.path.join(BASE_DIR, "models", "model.pkl")
 
-model = joblib.load(MODEL_PATH)
 
-def extract_features(file_path):
-    y, sr = librosa.load(file_path, sr=None)
-    mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=40)
-    return np.mean(mfcc.T, axis=0)
+def main():
+    print("🚀 EchoLocator ML Inference")
 
-@app.post("/predict")
-async def predict(file: UploadFile = File(...)):
-    temp_path = os.path.join(BASE_DIR, "temp.wav")
+    # Ask user for audio file path
+    file_path = input("Enter path to 2.5 sec audio file: ").strip()
 
-    contents = await file.read()
-    with open(temp_path, "wb") as f:
-        f.write(contents)
+    if not os.path.exists(file_path):
+        print("❌ File not found.")
+        return
 
-    features = extract_features(temp_path)
-    prediction = model.predict([features])
+    try:
+        confidence = infer(file_path)
 
-    return {"prediction": int(prediction[0])}
+        print(f"\n🎯 Confidence Score: {confidence:.4f}")
+
+        if confidence >= CONFIDENCE_THRESHOLD:
+            print("🔴 Distress Detected (Tier 2 Trigger)")
+        else:
+            print("🟢 Normal Audio")
+
+    except Exception as e:
+        print("❌ Error during inference:", e)
+
+
+if __name__ == "__main__":
+    main()
