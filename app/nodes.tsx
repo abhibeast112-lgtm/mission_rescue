@@ -83,7 +83,7 @@ export default function Nodes() {
             <Text style={styles.id}>{item.id}</Text>
 
             <Text style={styles.meta}>
-              📏 ~{estimateDistance(item.rssi)} m
+               ~{estimateDistance(item.rssi)} m
             </Text>
 
             <View style={styles.signalRow}>

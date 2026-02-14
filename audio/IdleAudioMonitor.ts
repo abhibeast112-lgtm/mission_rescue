@@ -15,12 +15,12 @@ let lastTrigger = 0;
 
 export async function startIdleAudioMonitor() {
     if (recording || intervalId) {
-  console.log("⚠️ Idle monitor already running");
+  console.log(" Idle monitor already running");
   return;
 }
 
   if (isAudioBusy()) {
-    console.log("🔒 Audio busy, idle monitor not started");
+    console.log(" Audio busy, idle monitor not started");
     return;
   }
 
@@ -30,7 +30,7 @@ ownsAudioLock = true;
 
   const permission = await Audio.requestPermissionsAsync();
   if (!permission.granted) {
-  console.log("🎧 Mic permission denied");
+  console.log(" Mic permission denied");
   if (ownsAudioLock) {
     unlockAudio();
     ownsAudioLock = false;
@@ -52,7 +52,7 @@ ownsAudioLock = true;
   });
 
   await recording.startAsync();
-  console.log("🎧 Idle audio monitor started");
+  console.log(" Idle audio monitor started");
 
   intervalId = setInterval(async () => {
     if (!recording) return;
@@ -61,7 +61,7 @@ ownsAudioLock = true;
     if (!status.isRecording || status.metering == null) return;
 
     const rms = Math.abs(status.metering) / 160;
-    console.log("🔊 RMS:", rms.toFixed(3));
+    console.log(" RMS:", rms.toFixed(3));
 
     const now = Date.now();
     if (
@@ -69,7 +69,7 @@ ownsAudioLock = true;
   now - lastTrigger > SUSPICION_COOLDOWN_MS
 ) {
   lastTrigger = now;
-  console.log("⚠️ Suspicion detected");
+  console.log(" Suspicion detected");
 
   await stopIdleAudioMonitor(); // 🔥 CRITICAL
   if (stateManager.canTriggerSuspicion()) {
@@ -94,7 +94,7 @@ export async function stopIdleAudioMonitor() {
         await recording.stopAndUnloadAsync();
       }
     } catch (e) {
-      console.warn("⚠️ Error stopping idle recorder", e);
+      console.warn(" Error stopping idle recorder", e);
     }
     recording = null;
   }
@@ -104,5 +104,5 @@ export async function stopIdleAudioMonitor() {
     ownsAudioLock = false;
   }
 
-  console.log("🛑 Idle audio monitor stopped");
+  console.log(" Idle audio monitor stopped");
 }

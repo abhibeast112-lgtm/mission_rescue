@@ -6,18 +6,18 @@ export function isAudioBusy(): boolean {
 
 export function lockAudio(): void {
   if (audioLocked) {
-    console.warn("🔒 Audio already locked");
+    console.warn(" Audio already locked");
     return;
   }
   audioLocked = true;
-  console.log("🔒 Audio locked");
+  console.log(" Audio locked");
 }
 
 export function unlockAudio(): void {
   if (!audioLocked) {
-    console.warn("🔓 Audio already unlocked");
+    console.warn(" Audio already unlocked");
     return;
   }
   audioLocked = false;
-  console.log("🔓 Audio unlocked");
+  console.log(" Audio unlocked");
 }

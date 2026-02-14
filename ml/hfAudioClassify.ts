@@ -44,37 +44,37 @@ function toFreshArrayBuffer(u8: Uint8Array): ArrayBuffer {
 return Uint8Array.from(u8).buffer;
 }
 
-export async function classifyAudioHF(
-fileUri: string
-): Promise<HFLabel[]> {
-if (!HF_TOKEN) throw new Error("Missing EXPO_PUBLIC_HF_TOKEN");
+export async function classifyAudioHF(fileUri: string): Promise<any> {
+  if (!HF_TOKEN) throw new Error("Missing EXPO_PUBLIC_HF_TOKEN");
 
-console.log("🤖 Sending audio to HF:", HF_MODEL);
+  console.log(" Sending audio to HF:", HF_MODEL);
 
-const base64 = await FileSystem.readAsStringAsync(fileUri, {
-encoding: "base64" as any,
-});
+  const form = new FormData();
 
-const bytes = base64ToBytes(base64);
-const body = toFreshArrayBuffer(bytes);
+  form.append("file", {
+    uri: fileUri,
+    name: "audio.3gp",
+    type: "audio/3gpp",
+  } as any);
 
-const res = await fetch(HF_URL, {
-method: "POST",
-headers: {
-Authorization: `Bearer ${HF_TOKEN}`,
-"Content-Type": "application/octet-stream",
-},
-body: body as any,
-});
+  const res = await fetch(HF_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${HF_TOKEN}`,
+      // ❌ DO NOT SET CONTENT-TYPE HERE
+      // RN will auto-set multipart/form-data
+    },
+    body: form,
+  });
 
-if (!res.ok) {
-const text = await res.text();
-throw new Error(`HF error ${res.status}: ${text}`);
-}
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`HF error ${res.status}: ${text}`);
+  }
 
-const json = await res.json();
+  const json = await res.json();
 
-console.log("✅ HF RESULT:", json);
+  console.log(" HF RESULT:", json);
 
-return json as HFLabel[];
+  return json;
 }

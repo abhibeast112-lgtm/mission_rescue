@@ -4,7 +4,7 @@ import { lockAudio, unlockAudio, isAudioBusy } from "./AudioLock";
 
 export async function recordSuspicionWindow(ms: number): Promise<string | null> {
   if (isAudioBusy()) {
-    console.log("🔒 Audio busy, suspicion recorder blocked");
+    console.log(" Audio busy, suspicion recorder blocked");
     return null;
   }
 
@@ -24,11 +24,11 @@ export async function recordSuspicionWindow(ms: number): Promise<string | null> 
     await recording.stopAndUnloadAsync();
 
     const uri = recording.getURI();
-    console.log("🎧 Suspicion audio captured:", uri);
+    console.log(" Suspicion audio captured:", uri);
 
     return uri ?? null;
   } catch (e) {
-    console.warn("⚠️ Suspicion recording failed", e);
+    console.warn(" Suspicion recording failed", e);
     return null;
   } finally {
     unlockAudio(); // 🔥 ALWAYS release

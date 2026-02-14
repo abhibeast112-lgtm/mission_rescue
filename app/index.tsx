@@ -46,7 +46,7 @@ export default function Home() {
   const stopListening = () => stateManager.setTier(Tier.OFF);
 
   const triggerConfirmed = async () => {
-    console.log("🧪 TEST BUTTON PRESSED");
+    console.log(" TEST BUTTON PRESSED");
     try {
       const senderId = await getDeviceId();
       const { getApproxLocation } = await import("../core/location");
@@ -70,15 +70,15 @@ export default function Home() {
         ...(approxLocation ? { approxLocation } : {}),
       };
 
-      console.log("🧪 saving alert:", alert.id);
+      console.log(" saving alert:", alert.id);
       await saveAlert(alert);
 
-      console.log("🧪 broadcasting alert:", alert.id);
+      console.log(" broadcasting alert:", alert.id);
       await broadcastAlert(alert);
 
-      console.log("✅ TEST ALERT SENT:", alert.id);
+      console.log(" TEST ALERT SENT:", alert.id);
     } catch (e) {
-      console.log("❌ TEST ALERT FAILED:", e);
+      console.log(" TEST ALERT FAILED:", e);
     }
   };
 
@@ -93,7 +93,7 @@ export default function Home() {
 
       <View style={styles.card}>
         <Text style={styles.status}>
-          {listening ? "🎧 Listening for distress..." : "🛑 Not Listening"}
+          {listening ? " Listening for distress..." : " Not Listening"}
         </Text>
         <Text style={styles.sub}>Mesh Network: Active</Text>
       </View>
@@ -123,7 +123,7 @@ export default function Home() {
       )}
 
       <Pressable onPress={triggerConfirmed} style={styles.button}>
-        <Text style={styles.buttonText}>🚨 TEST CONFIRMED ALERT</Text>
+        <Text style={styles.buttonText}> TEST CONFIRMED ALERT</Text>
       </Pressable>
 
       <View style={styles.navLinks}>
