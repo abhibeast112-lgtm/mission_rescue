@@ -1,10 +1,11 @@
+// mission_rescue/hooks/useEchoLocator.ts
 import { useEffect, useRef } from "react";
 import { startIdleAudioMonitor, stopIdleAudioMonitor } from "../audio/IdleAudioMonitor";
 import { recordSuspicionWindow } from "../audio/SuspicionRecorder";
 import { stateManager } from "../core/StateManager";
 import { Tier } from "../core/tiers";
 import { AlertV1 } from "../core/types";
-
+import { runDistressAI } from "../ml/mlBridge";
 
 export function useEchoLocator() {
   const suspicionHandled = useRef(false);
@@ -13,8 +14,13 @@ export function useEchoLocator() {
 
   const inFlight = useRef<Promise<void> | null>(null);
 
-  // ✅ NEW: only run monitor after user explicitly starts listening once
+  // ✅ only run monitor after user explicitly starts listening once
   const armed = useRef(false);
+
+  // ✅ anti-panic-spam: require 2 consecutive AI positives
+  const distressStreak = useRef(0);
+  const THRESHOLD = 0.6;
+  const NEED_STREAK = 2;
 
   useEffect(() => {
     console.log("🧠 useEchoLocator mounted");
@@ -22,18 +28,19 @@ export function useEchoLocator() {
     const handleTier = async (tier: Tier) => {
       // ⛔ OFF = HARD STOP
       if (tier === Tier.OFF) {
-        armed.current = false; // ✅ user disarmed
+        armed.current = false;
+        distressStreak.current = 0;
+
         if (!idleRunning.current) return;
+
         console.log("⛔ Listening OFF");
         idleRunning.current = false;
         await stopIdleAudioMonitor();
         return;
       }
 
-      // ✅ user explicitly started listening (IDLE entered from OFF)
+      // ✅ Arm when entering IDLE from a user action (your logic)
       if (tier === Tier.IDLE && stateManager.getTier() !== Tier.OFF) {
-        // if you want: armed when IDLE is set by button
-        // easiest: arm as soon as tier is IDLE
         armed.current = true;
       }
 
@@ -46,54 +53,75 @@ export function useEchoLocator() {
 
         console.log("🟡 Entered SUSPICION handler");
 
+        // Stop idle monitor during suspicion
         if (idleRunning.current) {
           idleRunning.current = false;
           await stopIdleAudioMonitor();
         }
 
-        const rec = await recordSuspicionWindow(2500);
-        if (rec && stateManager.getTier() !== Tier.OFF) {
-  try {
-    const { getDeviceId } = await import("../core/deviceId");
-    const { saveAlert } = await import("../storage/alertsStore");
-    const { broadcastAlert } = await import("../mesh/transport");
+        const uri = await recordSuspicionWindow(2500);
 
-    const senderId = await getDeviceId();
+        if (uri && stateManager.getTier() !== Tier.OFF) {
+          try {
+            console.log("🧠 Running AI distress check...");
 
-   const alert: AlertV1 = {
-  v: 1 as const,
-  id: "a_" + Date.now().toString(36),
-  createdAt: Date.now(),
-  senderId,
-  hop: 0,
-  ttl: 6,
-  confidence: 0.85,
-  tier: "CONFIRMED" as const,
-};
+            const { p, labels } = await runDistressAI(uri);
 
+            console.log("🧠 AI probability:", p);
+            console.log("🧠 AI top labels:", labels?.slice?.(0, 5));
 
-    await saveAlert(alert);
-    await broadcastAlert(alert);
+            // Anti-spam streak logic
+            if (p >= THRESHOLD) distressStreak.current += 1;
+            else distressStreak.current = 0;
 
-    console.log("🚨 AUTO ALERT SENT");
-  } catch (e) {
-    console.log("⚠️ alert build failed", e);
-  }
-}
+            const confirmed = distressStreak.current >= NEED_STREAK;
 
+            if (confirmed) {
+              distressStreak.current = 0; // reset after trigger
 
+              const { getDeviceId } = await import("../core/deviceId");
+              const { saveAlert } = await import("../storage/alertsStore");
+              const { broadcastAlert } = await import("../mesh/transport");
+
+              const senderId = await getDeviceId();
+
+              const alert: AlertV1 = {
+                v: 1 as const,
+                id: "a_" + Date.now().toString(36),
+                createdAt: Date.now(),
+                senderId,
+                hop: 0,
+                ttl: 6,
+                confidence: p,
+                tier: "CONFIRMED" as const,
+              };
+
+              await saveAlert(alert);
+              await broadcastAlert(alert);
+
+              console.log("🚨 AI CONFIRMED → ALERT SENT");
+            } else {
+              console.log("🟢 AI rejected distress — returning to IDLE");
+            }
+          } catch (e) {
+            console.log("⚠️ AI processing failed", e);
+          }
+        }
+
+        // Resume IDLE if not OFF
         if (stateManager.getTier() !== Tier.OFF) {
           stateManager.setTier(Tier.IDLE);
         }
 
-        console.log(rec ? "🎧 Suspicion audio captured" : "❌ Recorder returned null");
+        console.log(uri ? "🎧 Suspicion audio captured" : "❌ Recorder returned null");
+
         handlingSuspicion.current = false;
         return;
       }
 
       // 🔁 IDLE = resume passive listening (ONLY if armed)
       if (tier === Tier.IDLE) {
-        if (!armed.current) return;          // ✅ this is the key
+        if (!armed.current) return;
         if (idleRunning.current) return;
 
         suspicionHandled.current = false;
