@@ -11,11 +11,10 @@ import { AlertV1 } from "../core/types";
 
 export default function Home() {
   const router = useRouter();
-  
+
   const pulse = useRef(new Animated.Value(0)).current;
   const [listening, setListening] = useState(false);
 
-  // ✅ keep UI synced with tier
   useEffect(() => {
     const unsub = stateManager.subscribe((t) => {
       setListening(t !== Tier.OFF);
@@ -23,7 +22,6 @@ export default function Home() {
     return () => unsub();
   }, []);
 
-  // ✅ Radar animation
   useEffect(() => {
     Animated.loop(
       Animated.timing(pulse, {
@@ -44,44 +42,45 @@ export default function Home() {
     outputRange: [0.7, 0],
   });
 
-  // ✅ THIS MUST EXIST (the error was saying it doesn't)
   const startListening = () => stateManager.setTier(Tier.IDLE);
   const stopListening = () => stateManager.setTier(Tier.OFF);
 
-
   const triggerConfirmed = async () => {
-  console.log("🧪 TEST BUTTON PRESSED");
+    console.log("🧪 TEST BUTTON PRESSED");
+    try {
+      const senderId = await getDeviceId();
+      const { getApproxLocation } = await import("../core/location");
 
-  try {
-    const senderId = await getDeviceId();
+      let approxLocation: { lat: number; lon: number; accuracyM?: number } | undefined;
+      try {
+        approxLocation = await getApproxLocation();
+      } catch (e) {
+        console.log("location unavailable");
+      }
 
-    const { getApproxLocation } = await import("../core/location");
-const approxLocation = await getApproxLocation();
+      const alert: AlertV1 = {
+        v: 1 as const,
+        id: "a_" + Date.now().toString(36),
+        createdAt: Date.now(),
+        senderId,
+        hop: 0,
+        ttl: 6,
+        confidence: 0.85,
+        tier: "CONFIRMED" as const,
+        ...(approxLocation ? { approxLocation } : {}),
+      };
 
-const alert: AlertV1 = {
-  v: 1 as const,
-  id: "a_" + Date.now().toString(36),
-  createdAt: Date.now(),
-  senderId,
-  hop: 0,
-  ttl: 6,
-  confidence: 0.85,
-  tier: "CONFIRMED" as const,
-  approxLocation,
-};
+      console.log("🧪 saving alert:", alert.id);
+      await saveAlert(alert);
 
+      console.log("🧪 broadcasting alert:", alert.id);
+      await broadcastAlert(alert);
 
-    console.log("🧪 saving alert:", alert.id);
-    await saveAlert(alert);
-
-    console.log("🧪 broadcasting alert:", alert.id);
-    await broadcastAlert(alert);
-
-    console.log("✅ TEST ALERT SENT:", alert.id);
-  } catch (e) {
-    console.log("❌ TEST ALERT FAILED:", e);
-  }
-};
+      console.log("✅ TEST ALERT SENT:", alert.id);
+    } catch (e) {
+      console.log("❌ TEST ALERT FAILED:", e);
+    }
+  };
 
   return (
     <LinearGradient colors={["#0a0f1f", "#05070f"]} style={styles.container}>
@@ -100,39 +99,38 @@ const alert: AlertV1 = {
       </View>
 
       {!listening ? (
-  <Pressable
-    onPress={startListening}
-    style={({ pressed }) => [
-      styles.button,
-      { transform: [{ scale: pressed ? 0.95 : 1 }] },
-      styles.buttonInactive,
-    ]}
-  >
-    <Text style={styles.buttonText}>START LISTENING</Text>
-  </Pressable>
-) : (
-  <Pressable
-    onLongPress={stopListening}
-    delayLongPress={700}
-    style={({ pressed }) => [
-      styles.button,
-      { transform: [{ scale: pressed ? 0.98 : 1 }] },
-    ]}
-  >
-    <Text style={styles.buttonText}>HOLD TO STOP</Text>
-  </Pressable>
-)}
-
+        <Pressable
+          onPress={startListening}
+          style={({ pressed }) => [
+            styles.button,
+            { transform: [{ scale: pressed ? 0.95 : 1 }] },
+            styles.buttonInactive,
+          ]}
+        >
+          <Text style={styles.buttonText}>START LISTENING</Text>
+        </Pressable>
+      ) : (
+        <Pressable
+          onLongPress={stopListening}
+          delayLongPress={700}
+          style={({ pressed }) => [
+            styles.button,
+            { transform: [{ scale: pressed ? 0.98 : 1 }] },
+          ]}
+        >
+          <Text style={styles.buttonText}>HOLD TO STOP</Text>
+        </Pressable>
+      )}
 
       <Pressable onPress={triggerConfirmed} style={styles.button}>
         <Text style={styles.buttonText}>🚨 TEST CONFIRMED ALERT</Text>
       </Pressable>
 
       <View style={styles.navLinks}>
-        <Pressable onPress={() => router.push("/nodes")}>
+        <Pressable onPress={() => router.push("/nodes")}> 
           <Text style={styles.linkText}>View Nodes</Text>
         </Pressable>
-        <Pressable onPress={() => router.push("/alerts")}>
+        <Pressable onPress={() => router.push("/alerts")}> 
           <Text style={styles.linkText}>View Alerts</Text>
         </Pressable>
       </View>
