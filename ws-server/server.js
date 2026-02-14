@@ -3,7 +3,7 @@ const { WebSocketServer } = require("ws");
 const PORT = process.env.PORT || 8787;
 const wss = new WebSocketServer({ port: PORT });
 
-console.log(`✅ WebSocket relay running on ws://0.0.0.0:${PORT}`);
+console.log(` WebSocket relay running on ws://0.0.0.0:${PORT}`);
 
 wss.on("connection", (ws) => {
   console.log("📲 client connected");
@@ -21,6 +21,6 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    console.log("❌ client disconnected");
+    console.log(" client disconnected");
   });
 });
