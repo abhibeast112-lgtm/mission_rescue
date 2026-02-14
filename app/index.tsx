@@ -133,6 +133,9 @@ export default function Home() {
         <Pressable onPress={() => router.push("/alerts")}> 
           <Text style={styles.linkText}>View Alerts</Text>
         </Pressable>
+        <Pressable onPress={() => router.push("./map")}>
+          <Text style={styles.linkText}>View map</Text>
+        </Pressable>
       </View>
     </LinearGradient>
   );

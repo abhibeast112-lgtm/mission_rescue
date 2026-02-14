@@ -2,8 +2,8 @@ import EventEmitter from "eventemitter3";
 
 export const meshEmitter = new EventEmitter();
 
-let scanning = false;
 let intervalId: any = null;
+let scanning = false;
 
 export const startScan = async () => {
   if (scanning) return; // prevent multiple scanners
@@ -12,11 +12,14 @@ export const startScan = async () => {
   console.log("📡 scanning for nearby devices...");
 
   intervalId = setInterval(() => {
+    const rssi = -40 - Math.floor(Math.random() * 60); // fake signal strength
+
     meshEmitter.emit("nodeFound", {
       id: "device_" + Math.floor(Math.random() * 100),
       lastSeen: Date.now(),
+      rssi,
     });
-  }, 5000);
+  }, 4000);
 };
 
 export const stopScan = () => {

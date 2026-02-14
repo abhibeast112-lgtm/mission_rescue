@@ -8,7 +8,7 @@ export default function RootLayout() {
   useEchoLocator();
 
   useEffect(() => {
-    // ✅ change IP if needed
+    
     meshConnect("ws://172.18.231.10:8787");
 
     const unsub = subscribeAlerts(async (a) => {
